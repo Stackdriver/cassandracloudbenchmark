@@ -1,0 +1,62 @@
+#!/bin/bash
+# Run the benchmark
+source benchmark.conf
+
+# Time to sleep after starting and before stopping for collectd measurements.
+# Default collectd interval is 10s, so 60s is ~6 measurements.
+BASELINE_SLEEP=60
+
+# Settings for the cassandra-stress tool
+CONSISTENCY_LEVEL="one"
+REPLICATION_FACTOR="3"
+NUM_KEYS="10000000"
+NODES="$CASSANDRA1_INTERNAL,$CASSANDRA2_INTERNAL,$CASSANDRA3_INTERNAL"
+OUTPUT_FILE="/tmp/cassandra-benchmark"
+RETRIES="100000"
+THREADS="25"
+
+# Mark start_time
+start_time=`date +%s`
+echo 'Waiting for baseline measurement...'
+sleep $BASELINE_SLEEP
+
+# Run the test
+ssh -t $SUDOUSER@$LOAD_GENERATOR_EXTERNAL "/usr/bin/cassandra-stress --file $OUTPUT_FILE --nodes $NODES --replication-factor $REPLICATION_FACTOR --consistency-level $CONSISTENCY_LEVEL --num-keys $NUM_KEYS -K $RETRIES -t $THREADS"
+
+# Mark end_time wait to return to baseline
+echo 'Waiting for end_time baseline measurement...'
+sleep $BASELINE_SLEEP
+end_time=`date +%s`
+
+# Move some data to the benchmarking node, use our local 
+# host as a bridge between since host-host rsync and scp is a PITA.
+# I apologize ahead of time if you're sipping the internet through a straw.
+TDIR=`mktemp -d cassandrabench.XXXXX`
+trap "{ cd - ; rm -rf $TDIR; exit 255; }" SIGINT
+
+cd $TDIR
+for CASSANDRA_HOST in $CASSANDRA1_EXTERNAL $CASSANDRA2_EXTERNAL $CASSANDRA3_EXTERNAL
+do
+    echo "Downloading data from $CASSANDRA_HOST"
+    # Download the data from each node
+    rsync -az $SUDOUSER@$CASSANDRA_HOST:/var/lib/collectd .
+done
+
+echo 'Syncing data to LOAD_GENERATOR...'
+rsync -az collectd/ $SUDOUSER@$LOAD_GENERATOR_EXTERNAL:/tmp/collectd
+
+# Log start and end time for bookkeeping
+echo $start_time >> st_et.log
+echo $end_time >> st_et.log
+
+# Cleanup
+cd -
+#rm -rf $TDIR
+
+# Generate a load test report
+echo 'Generating report...'
+ssh -t $SUDOUSER@$LOAD_GENERATOR_EXTERNAL "python /tmp/helpers/summarize_benchmark.py --start-time $start_time --end-time $end_time --path-to-csvs /tmp/collectd"
+
+# Download reports
+rsync -az $SUDOUSER@$LOAD_GENERATOR_EXTERNAL:/tmp/results .
+rsync -az $SUDOUSER@$LOAD_GENERATOR_EXTERNAL:/tmp/cassandra-benchmark ./results/.

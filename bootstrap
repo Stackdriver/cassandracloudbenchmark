@@ -1,0 +1,30 @@
+#!/bin/bash
+# Cassandra Cloud Benchmark
+# Bootstrap three remote Cassandra nodes
+# Assumes using DNS hostnames provided by the cloud provider.
+source benchmark.conf
+
+# Base Bootstrap
+for HOST in $CASSANDRA1_EXTERNAL $CASSANDRA2_EXTERNAL $CASSANDRA3_EXTERNAL $LOAD_GENERATOR_EXTERNAL
+do
+    # Sync our code over
+    rsync -az helpers $SUDOUSER@$HOST:/tmp
+    rsync -az puppet/ $SUDOUSER@$HOST:/tmp/puppet
+
+    # Support root login where sudo isn't installed. (IE: Official CentOS6 AWS AMI)
+    if [ $SUDOUSER == "root" ]; then
+        ssh -t $SUDOUSER@$HOST "rpm -q sudo || yum install -y sudo"
+    fi
+
+    ssh -t $SUDOUSER@$HOST "sudo /tmp/helpers/bootstrap_base.sh"
+done
+
+# Bootstrap Cassandra
+for CASSANDRA_HOST in $CASSANDRA1_EXTERNAL $CASSANDRA2_EXTERNAL $CASSANDRA3_EXTERNAL
+do
+    # Bootstrap the node
+    ssh -t $SUDOUSER@$CASSANDRA_HOST "sudo /tmp/helpers/bootstrap_cassandra.sh $CASSANDRA1_INTERNAL"
+done
+
+# Bootstrap LOAD_GENERATOR
+ssh -t $SUDOUSER@$LOAD_GENERATOR_EXTERNAL "sudo /tmp/helpers/bootstrap_load_generator.sh"
