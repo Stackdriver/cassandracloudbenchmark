@@ -64,7 +64,7 @@ max_hints_delivery_threads: 2
 # - PasswordAuthenticator relies on username/password pairs to authenticate
 #   users. It keeps usernames and hashed passwords in system_auth.credentials table.
 #   Please increase system_auth keyspace replication factor if you use this authenticator.
-authenticator: org.apache.cassandra.auth.AllowAllAuthenticator
+authenticator: AllowAllAuthenticator
 
 # Authorization backend, implementing IAuthorizer; used to limit access/provide permissions
 # Out of the box, Cassandra provides org.apache.cassandra.auth.{AllowAllAuthorizer,
@@ -73,7 +73,7 @@ authenticator: org.apache.cassandra.auth.AllowAllAuthenticator
 # - AllowAllAuthorizer allows any action to any user - set it to disable authorization.
 # - CassandraAuthorizer stores permissions in system_auth.permissions table. Please
 #   increase system_auth keyspace replication factor if you use this authorizer.
-authorizer: org.apache.cassandra.auth.AllowAllAuthorizer
+authorizer: AllowAllAuthorizer
 
 # Validity period for permissions cache (fetching permissions can be an
 # expensive operation depending on the authorizer, CassandraAuthorizer is
@@ -269,8 +269,8 @@ reduce_cache_capacity_to: 0.6
 # number of "concurrent_writes" is dependent on the number of cores in
 # your system; (8 * number_of_cores) is a good rule of thumb.
 
-#CLOUDBENCH: We are using 1 disk so 16*1 = 16
-concurrent_reads: 16
+#CLOUDBENCH: SSDs
+concurrent_reads: <%= @processorcount.to_i*8 %>
 
 #CLOUDBENCH: Configured based on the # of CPUs * 8
 concurrent_writes: <%= @processorcount.to_i*8 %>
@@ -307,7 +307,8 @@ memtable_flush_queue_size: 4
 # buffers. Enable this to avoid sudden dirty buffer flushing from
 # impacting read latencies. Almost always a good idea on SSDs; not
 # necessarily on platters.
-trickle_fsync: false
+#CLOUDBENCH: SSDs
+trickle_fsync: true
 trickle_fsync_interval_in_kb: 10240
 
 # TCP port, for commands and data
@@ -384,7 +385,8 @@ rpc_keepalive: true
 #
 # Alternatively,  can provide your own RPC server by providing the fully-qualified class name
 # of an o.a.c.t.TServerFactory that can create an instance of it.
-rpc_server_type: sync
+# CLOUDBENCH: we're running on linux
+rpc_server_type: hsha
 
 # Uncomment rpc_min|max_thread to set request pool size limits.
 #
@@ -480,7 +482,8 @@ multithreaded_compaction: false
 # 16 to 32 times the rate you are inserting data is more than sufficient.
 # Setting this to 0 disables throttling. Note that this account for all types
 # of compaction, including validation compaction.
-compaction_throughput_mb_per_sec: 16
+#CLOUDBENCH: SSDs
+compaction_throughput_mb_per_sec: 0
 
 # Track cached row keys during compaction, and re-cache their new
 # positions in the compacted sstable.  Disable if you use really large
