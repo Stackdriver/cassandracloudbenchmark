@@ -24,7 +24,7 @@ class cassandra::package {
     }
 
     package { "dsc12":
-        ensure  => "1.2.5-1",
+        ensure  => "1.2.11-1",
         notify  => Exec["update-java-priorities"],
         require => [ Class["cassandra::repo"], Class["cassandra::java"], Package["jna"] ],
     }
