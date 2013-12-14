@@ -207,7 +207,7 @@ saved_caches_directory: /var/lib/cassandra/saved_caches
 # and the CommitLog is simply synced every commitlog_sync_period_in_ms
 # milliseconds.
 commitlog_sync: periodic
-commitlog_sync_period_in_ms: 10000
+commitlog_sync_period_in_ms: 5000
 
 # The size of the individual commitlog file segments.  A commitlog
 # segment may be archived, deleted, or recycled once all the data
@@ -288,19 +288,19 @@ concurrent_writes: <%= @processorcount.to_i*8 %>
 # segment multiple), Cassandra will flush every dirty CF in the oldest
 # segment and remove it.  So a small total commitlog space will tend
 # to cause more flush activity on less-active columnfamilies.
-# commitlog_total_space_in_mb: 4096
+commitlog_total_space_in_mb: 1024
 
 # This sets the amount of memtable flush writer threads.  These will
 # be blocked by disk io, and each one will hold a memtable in memory
 # while blocked. If you have a large heap and many data directories,
 # you can increase this value for better flush performance.
 # By default this will be set to the amount of data directories defined.
-#memtable_flush_writers: 1
+memtable_flush_writers: 8
 
 # the number of full memtables to allow pending flush, that is,
 # waiting for a writer thread.  At a minimum, this should be set to
 # the maximum number of secondary indexes created on a single CF.
-memtable_flush_queue_size: 4
+memtable_flush_queue_size: 8
 
 # Whether to, when doing sequential writing, fsync() at intervals in
 # order to force the operating system to flush the dirty
@@ -328,8 +328,10 @@ ssl_storage_port: 7001
 # address associated with the hostname (it might not be).
 #
 # Setting this to 0.0.0.0 is always wrong.
-#CLOUDBENCH: Configure to listen on eth0
-listen_address: <%= @ipaddress_eth0 %>
+#CLOUDBENCH: Configure to listen on eth0, unless eth1 exists, like in rackspace
+<% if @network_eth1 %>
+listen_address: <%= @ipaddress_eth1 %>
+<% end %>
 
 # Address to broadcast to other Cassandra nodes
 # Leaving this blank will set it to the same value as listen_address
@@ -482,8 +484,9 @@ multithreaded_compaction: false
 # 16 to 32 times the rate you are inserting data is more than sufficient.
 # Setting this to 0 disables throttling. Note that this account for all types
 # of compaction, including validation compaction.
-#CLOUDBENCH: SSDs
-compaction_throughput_mb_per_sec: 0
+#CLOUDBENCH: SSDs really want this off, but for the insert workload benchmark we can make it more fair to compare
+#            non-SSD vs SSD price vs performance.
+compaction_throughput_mb_per_sec: 16
 
 # Track cached row keys during compaction, and re-cache their new
 # positions in the compacted sstable.  Disable if you use really large
@@ -495,7 +498,7 @@ compaction_preheat_key_cache: true
 # mostly sequential IO when streaming data during bootstrap or repair, which
 # can lead to saturating the network connection and degrading rpc performance.
 # When unset, the default is 200 Mbps or 25 MB/s.
-# stream_throughput_outbound_megabits_per_sec: 200
+stream_throughput_outbound_megabits_per_sec: 720
 
 # How long the coordinator should wait for read operations to complete
 read_request_timeout_in_ms: 10000
