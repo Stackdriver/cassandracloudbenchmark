@@ -10,7 +10,7 @@ mkdir /cassandra_data
 # aws standard for m1.xlarge
 if [ -b /dev/xvdf ]; then
   umount /dev/xvdf
-  /sbin/mkfs.ext4 /dev/xvdf
+  /sbin/mkfs.ext4 -E lazy_itable_init=0 /dev/xvdf
   mount -o noatime /dev/xvdf /cassandra_data
 # gce default for n-standard-4-d
 elif [ -b /dev/sdb ]; then
@@ -22,7 +22,7 @@ p
 w
 " | /sbin/fdisk /dev/sdb
   umount /dev/sdb1
-  /sbin/mkfs.ext4 /dev/sdb1
+  /sbin/mkfs.ext4 -E lazy_itable_init=0 /dev/sdb1
   mount -o noatime /dev/sdb1 /cassandra_data
 fi
 
