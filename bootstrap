@@ -8,6 +8,8 @@ source benchmark.conf
 for HOST in $CASSANDRA1_EXTERNAL $CASSANDRA2_EXTERNAL $CASSANDRA3_EXTERNAL $LOAD_GENERATOR_EXTERNAL
 do
     # Sync our code over
+    rm -rf /tmp/puppet
+    rm -rf /tmp/helpers
     rsync -az helpers $SUDOUSER@$HOST:/tmp
     rsync -az puppet/ $SUDOUSER@$HOST:/tmp/puppet
 

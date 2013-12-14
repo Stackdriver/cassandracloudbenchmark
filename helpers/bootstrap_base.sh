@@ -2,6 +2,7 @@
 # Install EPEL, Puppet, and Collectd
 
 # Install our puppet code
+rm -rf /etc/puppet
 /bin/mv /tmp/puppet /etc/puppet
 
 # EPEL Repo
